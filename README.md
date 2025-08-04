@@ -1,62 +1,91 @@
-# Project Bootstrap Template
+# Oracle Database Docker Images
 
-This repository provides a reusable template to bootstrap a standardized project structure for documentation, scripts, and demos.
+This repository provides a modular and maintainable framework for building **multi-platform Oracle Database Docker images**, including support for:
 
-## 📦 Features
+- Multiple Oracle Database versions (e.g. 19c, 23ai)
+- Release Updates (RUs) with patch ZIP management
+- `amd64` and `arm64` architectures
+- Docker Compose setups for local development and testing
 
-- 🧰 Self-contained initialization script (`init_project.sh`) with embedded template payload
-- 🔁 Build script (`build_project.sh`) to package and update the payload
-- 📄 Markdown-based documentation and Pandoc-compatible PDF generation
-- 🧪 Compatible with macOS, Linux, and container-based dev environments
-- 🚀 GitHub Actions workflow publishes the latest script to a GitHub Release
+> ⚠️ This is a **community-maintained project** by [OraDBA](https://www.oradba.ch)  
+> It is **not affiliated with Oracle Corporation**.  
+> For official Oracle container builds, see [oracle/docker-images](https://github.com/oracle/docker-images)
 
-## 🚀 Getting Started
+## Repository Structure
 
-To create a new project from this template:
+```text
+.
+├── bin/                    # Build scripts and project tooling
+│   ├── buildDB.sh          # Main image build script
+│   └── template.sh         # Script templates or test helpers
 
-```bash
-./bin/init_project.sh -d /path/to/target -n my-new-project
+├── common/                 # Shared Docker logic and shell utilities
+│   ├── docker/             # Reusable Dockerfile snippets
+│   └── scripts/            # Common shell functions
+
+├── database/               # Oracle Database build definitions
+│   ├── 19/                 # Oracle 19c
+│   │   ├── docker/         # Base Dockerfile templates
+│   │   ├── config/         # Setup/startup scripts
+│   │   └── software/       # Patch ZIPs and metadata
+│   ├── 23/                 # Oracle 23ai
+│   └── README.md           # Supported versions and build notes
+
+├── doc/                    # Markdown documentation
+│   ├── usage.md
+│   ├── patching.md
+│   └── build_matrix.md
+
+├── artefacts/              # Output logs or build metadata
+├── images/                 # Logos and visual assets
+├── notes/                  # Changelogs or internal notes
+
+├── .gitignore
+├── LICENSE
+└── README.md               # This file
+````
+
+## Features
+
+- ✅ Support for Oracle 19c and 23ai builds
+- ✅ Multi-platform: `amd64` and `arm64`
+- ✅ Per-RU patch ZIP management
+- ✅ Modular build logic for reuse and automation
+- ✅ Docker Compose support for common use cases
+- ✅ Clear documentation and structure
+
+## Getting Started
+
+Basic usage (build commands and setup instructions) will be documented soon.
+For now, refer to:
+
+- [`doc/usage.md`](doc/usage.md) - How to build and run database images
+- [`doc/patching.md`](doc/patching.md) - How to add patch ZIPs and metadata
+- [`doc/build_matrix.md`](doc/build_matrix.md) - Overview of supported builds
+
+## Patch and Metadata Layout
+
+Patch ZIPs and metadata are stored by version and platform:
+
+```text
+database/19/software/amd64/RU_19.27.0.0/oracle_package_names_amd64
 ```
 
-To update the embedded payload after making changes:
+Each file defines the ZIPs required to build a specific image.
+The build script `buildDB.sh` uses this metadata to assemble the final image.
 
-```bash
-./bin/build_project.sh
-```
+## Contributing
 
-## 🌐 Quick Download via GitHub Release
+- Fork and submit pull requests
+- Open issues for bugs or enhancements
+- Contributions from Oracle DBAs, developers, and the wider community are welcome
 
-You can download the latest generated `init_project.sh` script directly from GitHub:
+## License
 
-```bash
-curl -fsSL -H "Authorization: token $GH_PAT" \
-  -o init_project.sh \
-  https://github.com/<user>/<repo>/releases/download/latest/init_project.sh
-chmod +x init_project.sh
-```
+- Code is licensed under the [Apache 2.0 License](LICENSE)
+- Oracle binaries must be downloaded separately and used in accordance with Oracle's license terms
 
-> Replace `<user>` and `<repo>` with your actual GitHub username and repository name.
+## Maintainer
 
-## 📁 Folder Overview
-
-| Folder         | Description                                                      |
-|----------------|------------------------------------------------------------------|
-| `artefacts/`   | Generated files like PDFs, Excel, or Office docs                 |
-| `bin/`         | Utility scripts for setup and automation                         |
-| `doc/`         | Markdown documentation sources                                   |
-| `fonts/`       | Fonts used for PDF generation                                    |
-| `images/`      | Screenshots, diagrams, and logos                                 |
-| `notes/`       | Drafts, notes, and to-do items                                   |
-| `sql/`         | SQL scripts for validation or automation                         |
-
-## 🔐 GitHub Actions Setup
-
-This repo includes a workflow that automatically builds `init_project.sh` and uploads it to the `latest` release.
-
-To make this work:
-1. Push to `main`
-2. The GitHub Actions workflow will publish the script to the release
-
-## 📝 License
-
-Apache License 2.0 — See [LICENSE](http://www.apache.org/licenses/LICENSE-2.0)
+**Stefan Oehrli**
+[oradba.ch](https://www.oradba.ch) · [GitHub @oehrli](https://github.com/oehrli)
