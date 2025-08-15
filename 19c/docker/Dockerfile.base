@@ -1,0 +1,185 @@
+# ------------------------------------------------------------------------------
+# OraDBA - Oracle Database Infrastructure and Security, 5630 Muri, Switzerland
+# ------------------------------------------------------------------------------
+# Name.......: Dockerfile.base
+# Author.....: Stefan Oehrli (oes) stefan.oehrli@oradba.ch
+# Editor.....: Stefan Oehrli
+# Date.......: 2024.10.10
+# Purpose....: Dockerfile.base for Oracle Database (Multi-Platform)
+# Notes......: Builds a multi-stage Oracle Database image with base and RU patch applied
+# Reference..: --
+# License....: Apache License Version 2.0, January 2004 as shown
+#              at http://www.apache.org/licenses/
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# Stage 1: Base OS Setup
+# ------------------------------------------------------------------------------
+# Use oraclelinux:8 as the base image for both build and runtime stages
+ARG BASE_IMAGE=oraclelinux:8
+FROM ${BASE_IMAGE} AS base
+
+# -- Build arguments
+ARG TARGETARCH
+
+# ------------------------------------------------------------------------------
+# Environment variables for runtime
+# ------------------------------------------------------------------------------
+ENV ORADBA_INIT_BRANCH=master \
+    SOFTWARE=/opt/stage \
+    ORADBA_INIT="/opt/oradba/bin" \
+    LANG=en_US.UTF-8 \
+    NLS_LANG=American_America.AL32UTF8 \
+    PATH=$PATH:/usr/local/bin:/usr/sbin
+
+# ------------------------------------------------------------------------------
+# Prepare base system and install oradba_init environment
+# ------------------------------------------------------------------------------
+RUN if ! command -v yum >/dev/null; then microdnf install --nodocs -y yum; fi && \
+    yum install -y --nodocs oracle-epel-release-el8 && \
+    yum install -y --nodocs curl unzip tar gzip hostname shadow-utils findutils zip dnf dnf-utils && \
+    yum clean all && rm -rf /var/cache/{yum,dnf}
+
+# ------------------------------------------------------------------------------
+# Install oradba_init via bootstrap script and configure the OS environment for Oracle
+# ------------------------------------------------------------------------------
+RUN curl -fsSL https://raw.githubusercontent.com/oehrlis/oradba_init/${ORADBA_INIT_BRANCH}/bin/00_setup_oradba_init.sh \
+    -o /tmp/00_setup_oradba_init.sh && \
+    chmod +x /tmp/00_setup_oradba_init.sh && \
+    /tmp/00_setup_oradba_init.sh && \
+    rm -f /tmp/00_setup_oradba_init.sh && \
+    ${ORADBA_INIT}/01_setup_os_db.sh && \
+    yum clean all && \
+    rm -rf /var/cache/yum /var/cache/dnf
+
+# ------------------------------------------------------------------------------
+# Stage 2: Oracle Installation
+# ------------------------------------------------------------------------------
+FROM base AS builder
+
+# -- Build arguments
+ARG TARGETARCH
+ARG ORACLE_RELEASE="19.0.0.0"
+ARG ORACLE_RELEASE_UPDATE="19.27.0.0"
+ARG ORACLE_ROOT=/u00
+ARG ORACLE_BASE=/u00/app/oracle
+ARG ORACLE_DATA=/u01
+ARG ORACLE_ARCH=/u01
+ARG ORAREPO=orarepo
+ARG DEFAULT_DOMAIN="postgasse.org"
+ARG SLIMMING=true
+
+# ------------------------------------------------------------------------------
+# Environment for Oracle setup and scripts
+# ------------------------------------------------------------------------------
+ENV SOFTWARE=/opt/stage \
+    ORADBA_INIT="/opt/oradba/bin" \
+    ORACLE_VERSION=${ORACLE_RELEASE} \
+    ORACLE_HOME=${ORACLE_BASE}/product/${ORACLE_RELEASE} \
+    ORACLE_ROOT=${ORACLE_BASE} \
+    ORACLE_BASE=${ORACLE_BASE} \
+    ORACLE_DATA=${ORACLE_DATA} \
+    ORACLE_ARCH=${ORACLE_ARCH} \
+    ORAREPO=${ORAREPO} \
+    DEFAULT_DOMAIN=${DEFAULT_DOMAIN} \
+    PATCH_LATER=TRUE \
+    SLIMMING=${SLIMMING}
+
+# -- Runtime environment with additional environment variables
+ENV PATH=$PATH:/usr/local/bin:/usr/sbin:${ORACLE_HOME}/bin
+
+# ------------------------------------------------------------------------------
+# Copy software binaries and patch info into image (release-specific)
+# ------------------------------------------------------------------------------
+COPY --chown=oracle:oinstall software/generic/ ${SOFTWARE}/
+COPY --chown=oracle:oinstall software/${TARGETARCH}/base/ ${SOFTWARE}/
+COPY --chown=oracle:oinstall software/${TARGETARCH}/RU_${ORACLE_RELEASE_UPDATE}/ ${SOFTWARE}/
+COPY software/oracle_package_names_${TARGETARCH}_${ORACLE_RELEASE_UPDATE} ${SOFTWARE}/oracle_package_names
+
+# ------------------------------------------------------------------------------
+# Switch to oracle user and start Oracle software installation
+# ------------------------------------------------------------------------------
+USER oracle
+WORKDIR /home/oracle
+
+# -- Source package metadata and run install scripts
+RUN . "${SOFTWARE}"/oracle_package_names && \
+    export $(cut -d= -f1 "${SOFTWARE}"/oracle_package_names) && \
+    export PROCESSOR=$(uname -m) && \
+    ${ORADBA_INIT}/10_setup_db.sh && \
+    ${ORADBA_INIT}/20_setup_basenv.sh && \
+    ${ORADBA_INIT}/11_setup_db_patch.sh
+
+# ------------------------------------------------------------------------------
+# Stage 3: Final Runtime Image
+# ------------------------------------------------------------------------------
+FROM base AS final
+
+# -- Build arguments again for labels and ENV
+ARG TARGETARCH
+ARG ORACLE_RELEASE="19.0.0.0"
+ARG ORACLE_RELEASE_UPDATE="19.27.0.0"
+ARG ORACLE_BASE=/u00/app/oracle
+ARG ORACLE_DATA=/u01
+ARG ORACLE_ARCH=/u01
+ARG DEFAULT_DOMAIN="postgasse.org"
+ARG PORT=1521
+ARG PORT_CONSOLE=5500
+
+# -- Runtime environment
+ENV ORACLE_VERSION=${ORACLE_RELEASE} \
+    ORACLE_HOME=${ORACLE_BASE}/product/${ORACLE_RELEASE} \
+    ORACLE_ROOT=${ORACLE_BASE} \
+    ORACLE_BASE=${ORACLE_BASE} \
+    ORACLE_DATA=${ORACLE_DATA} \
+    ORACLE_ARCH=${ORACLE_ARCH} \
+    DEFAULT_DOMAIN=${DEFAULT_DOMAIN} \
+    PORT=${PORT} \
+    PORT_CONSOLE=${PORT_CONSOLE}
+
+# -- Runtime environment with additional environment variables
+ENV PATH=$PATH:/usr/local/bin:/usr/sbin:${ORACLE_HOME}/bin
+
+# -- Labels (for metadata)
+LABEL provider="stefan.oehrli@oradba.ch" \
+      description="Docker image for Oracle Database ${ORACLE_VERSION} with RU ${ORACLE_RELEASE_UPDATE}" \
+      issues="https://github.com/oehrlis/oracle-database-docker/issues" \
+      volume.data="${ORACLE_DATA}" \
+      volume.setup.location1="${ORACLE_DATA}/config/setup" \
+      volume.startup.location1="${ORACLE_DATA}/config/startup" \
+      port.listener="${PORT}" \
+      port.oemexpress="${PORT_CONSOLE}"
+
+# copy binaries
+COPY  --chown=oracle:oinstall --from=builder "${ORACLE_BASE}" "${ORACLE_BASE}"
+# copy oracle inventory
+COPY  --chown=oracle:oinstall --from=builder "${ORACLE_ROOT}/app/oraInventory" "${ORACLE_ROOT}/app/oraInventory"
+# copy basenv profile stuff
+COPY  --chown=oracle:oinstall --from=builder /home/oracle/.BE_HOME /home/oracle/.TVDPERL_HOME /home/oracle/.bash_profile /home/oracle/
+
+# RUN as root post install scripts
+USER  root
+RUN   "${ORACLE_ROOT}/app/oraInventory/orainstRoot.sh" && \
+      "${ORACLE_HOME}/root.sh"
+
+# Finalize target image
+# ------------------------------------------------------------------------------
+# Switch back to Oracle user
+USER oracle
+
+# Expose listener and Oracle EM Express ports
+EXPOSE ${PORT} ${PORT_CONSOLE}
+
+# Define data volume
+VOLUME ["${ORACLE_DATA}"]
+
+# Set working directory to Oracle base
+WORKDIR "${ORACLE_BASE}"
+
+# Add health check for database availability
+HEALTHCHECK --interval=1m --start-period=5m --timeout=30s \
+   CMD ${ORADBA_INIT}/54_check_database.sh >/dev/null || exit 1
+
+# Define default command to start the database
+CMD ["/bin/bash", "-c", "exec ${ORADBA_INIT}/50_run_database.sh"]
+# --- EOF ----------------------------------------------------------------------
