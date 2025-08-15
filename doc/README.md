@@ -1,7 +1,3 @@
-Here's the complete and accurate English version of your `doc/README.md`, with all requested additions:
-
----
-
 # Folder: doc
 
 This directory contains the **active project documentation** in Markdown format, including:
