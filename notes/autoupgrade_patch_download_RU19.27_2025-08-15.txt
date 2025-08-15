@@ -1,0 +1,54 @@
+Java 11 found at /Library/Java/JavaVirtualMachines/jdk-11.jdk/Contents/Home
+JAVA_HOME set to /Library/Java/JavaVirtualMachines/jdk-11.jdk/Contents/Home
+Running main logic with Java: java version "11.0.26" 2025-01-21 LTS
+Resolving environment variables in config: /Users/stefan.oehrli/Development/github/oehrlis/autoupgrade/etc/download_RU19.27.cfg
+Running AutoUpgrade with resolved config...
+Using resolved config: /tmp/autoupgrade_resolved_22030.cfg
+AutoUpgrade Patching 25.3.250509 launched with default internal options
+Processing config file ...
+Loading AutoUpgrade Patching keystore
+AutoUpgrade Patching keystore is loaded
+
+Connected to MOS - Searching for specified patches
+
+----------------------------------------------------------------------------------------
+Downloading files to /Users/stefan.oehrli/Development/github/oehrlis/autoupgrade/patches
+----------------------------------------------------------------------------------------
+DATABASE RELEASE UPDATE 19.27.0.0.0
+    File: p37642901_190000_Linux-ARM-64.zip - LOCATED
+
+DATAPUMP BUNDLE PATCH 19.27.0.0.0
+    File: p37777295_1927000DBRU_Generic.zip - LOCATED
+
+OJVM RELEASE UPDATE 19.27.0.0.0
+    File: p37499406_190000_Linux-ARM-64.zip - LOCATED
+
+OPatch 12.2.0.1.47 for DB 19.0.0.0.0 (Jul 2025)
+    File: p6880880_190000_Linux-ARM-64.zip - LOCATED
+
+Fix for Bug 37542054
+    File: p37542054_190000_Linux-ARM-64.zip - LOCATED
+----------------------------------------------------------------------------------------
+
+
+Connected to MOS - Searching for specified patches
+
+----------------------------------------------------------------------------------------
+Downloading files to /Users/stefan.oehrli/Development/github/oehrlis/autoupgrade/patches
+----------------------------------------------------------------------------------------
+DATABASE RELEASE UPDATE 19.27.0.0.0
+    File: p37642901_190000_Linux-x86-64.zip - LOCATED
+
+DATAPUMP BUNDLE PATCH 19.27.0.0.0
+    File: p37777295_1927000DBRU_Generic.zip - LOCATED
+
+OJVM RELEASE UPDATE 19.27.0.0.0
+    File: p37499406_190000_Linux-x86-64.zip - LOCATED
+
+OPatch 12.2.0.1.47 for DB 19.0.0.0.0 (Jul 2025)
+    File: p6880880_190000_Linux-x86-64.zip - LOCATED
+
+Fix for Bug 37542054
+    File: p37542054_190000_Linux-x86-64.zip - LOCATED
+----------------------------------------------------------------------------------------
+
