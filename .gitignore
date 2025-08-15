@@ -1,8 +1,9 @@
-
 # VS Code workspace
+.vscode/
 *.code-workspace
 
-# Artefakte und generierte Dateien
+# Artefacts and build outputs
+# Exclude all artefacts but keep specific file types
 /artefacts/*
 !/artefacts/.gitkeep
 !/artefacts/*.pdf
@@ -10,21 +11,25 @@
 !/artefacts/*.docx
 !/artefacts/*.pptx
 
-# Temporäre Dateien und Backup-Dateien
+# Exclude common temporary and backup files
 *~
 *.bak
 *.tmp
 .DS_Store
 Thumbs.db
 
-# Systemverzeichnisse
-__pycache__/
+# Oracle binaries and patches
+# Exclude all Oracle binaries but keep specific files
+*.zip
+
+# Docker build artifacts
+*.tar
 *.log
 
-# Editor-spezifisch
-.vscode/
-.idea/
+# Temporary files
+*.swp
+*.bak
+*.tmp
 
-# Python virtual environments
-.venv/
-env/
+# OS junk
+.DS_Store
